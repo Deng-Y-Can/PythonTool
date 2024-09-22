@@ -12,6 +12,8 @@ from email.header import Header
 import time
 from datetime import date
 import schedule
+import re
+import threading
 
 mainExcelPath=os.path.join(os.getcwd(),"plan.xlsx")
 def check_and_create_plan_file(path,file_name = 'plan.xlsx'):
@@ -63,6 +65,15 @@ def create_custom_excel_file():
 
 def show_message(title="温馨提示",message=""):
     messagebox.showinfo(title, message)
+    # top = tk.Toplevel()
+    # top.title(title)
+    # top.geometry("300x150")  # 设置窗口大小为 300x150
+    #
+    # label = tk.Label(top, text=message)
+    # label.pack(pady=20)
+    #
+    # button = tk.Button(top, text="确定", command=top.destroy)
+    # button.pack()
 
 
 
@@ -136,11 +147,16 @@ def get_column_number(sheet, column_name):
             return col_num
     return None
 
+
+
 def get_email(title="输入邮箱",message="请输入邮箱："):
     def on_ok():
         global email
         email = entry.get()
-        dialog.destroy()
+        if not is_email(email):
+            messagebox.showwarning("错误", f"这不是一个邮箱哦")
+        else:
+            dialog.destroy()
 
     def on_cancel():
         global email
@@ -275,8 +291,8 @@ def send_email2(to_email,content):
     smtp_port = 587  #587  465
     smtp_port_ssl=465
     # 发件人邮箱地址
-    sender_email = '3489819802@qq.com'
-    sender_password = 'yrnyhuklvzqtcjhh'
+    sender_email = 'aaa@qq.com'
+    sender_password = 'bbb'
 
     # 邮件内容
     subject = '学习提醒'
@@ -318,9 +334,12 @@ def timecheck():
     任务：{item[3]}
     你的小助手
     {datetime.now().date()}"""
-        send_email2("3263554644@qq.com", text)
+        send_email2("ccc@qq.com", text)
     show_message(f"测试完成")
 
+def is_email(string):
+    email_pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    return bool(re.match(email_pattern, string))
 
 def is_today(string_date):
     today = datetime.now().date()
@@ -330,24 +349,39 @@ def is_today(string_date):
     except ValueError:
         return False
 
+def run_schedule():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
 #主程序开始
 path = os.getcwd()
 result = check_and_create_plan_file(path)
-if not result:
-    initialization()
-show_message(f"您好，我滴宝贝，欢迎使用学习监督小能手！")
-task()
+
 
 # 设置每天 8 点执行方法
-schedule.every().day.at("11:43").do(timecheck())
+schedule.every().day.at("11:50").do(timecheck)
 
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+# 创建一个新线程来运行定时任务
+thread = threading.Thread(target=run_schedule)
+thread.start()
 
-#task()
-#send_email2("3263554644@qq.com")
-#timecheck()
+try:
+    # 主线程持续运行
+    while True:
+        if not result:
+            initialization()
+        show_message(f"您好，我滴宝贝，欢迎使用学习监督小能手！")
+        task()
+        time.sleep(1000)
+except KeyboardInterrupt:
+    print("程序被手动中断。")
+finally:
+    # 在程序退出时尝试停止定时任务线程
+    schedule_thread.join(timeout=5)
+    if schedule_thread.is_alive():
+        print("无法正常停止定时任务线程。")
+
 
 
 
